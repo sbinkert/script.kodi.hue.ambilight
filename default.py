@@ -2,12 +2,11 @@ import xbmc
 import xbmcgui
 import xbmcaddon
 import json
-import time
 import sys
 import colorsys
 import os
-import datetime
 import math
+import threading
 
 __addon__ = xbmcaddon.Addon()
 __cwd__ = __addon__.getAddonInfo('path')
@@ -17,12 +16,19 @@ sys.path.append(__resource__)
 
 from settings import *
 from tools import *
+import web
 
-#try:
-#  import requests
-#except ImportError:
-#  xbmc.log("ERROR: Could not locate required library requests")
-#  notify("Kodi Hue", "ERROR: Could not import Python requests")
+class REST_Server(threading.Thread):
+    def run(self):
+        urls = ('/color', 'REST_Server')
+        app = web.application(urls, globals())
+        app.run()
+
+    def GET(self):
+        web.header('Content-Type', 'application/json')
+        output = json.dumps(currentColor)
+        return output
+
 
 xbmc.log("Kodi Hue service started, version: %s" % get_version())
 
@@ -32,16 +38,19 @@ fmt = capture.getImageFormat()
 # xbmc.log("Hue Capture Image format: %s" % fmt)
 fmtRGBA = fmt == 'RGBA'
 
+currentColor = { 'h':0.0,
+                's':0.0,
+                'v':0.0}
+
 class MyMonitor(xbmc.Monitor):
   def __init__(self, *args, **kwargs):
     xbmc.Monitor.__init__(self)
 
   def onSettingsChanged(self):
-    logger.debuglog("running in mode %s" % str(hue.settings.mode))
+    logger.debuglog("Settings changed")
     #last = datetime.datetime.now()
     #hue.settings.readxml()
     #hue.update_settings()
-
 monitor = MyMonitor()
 
 class MyPlayer(xbmc.Player):
@@ -55,6 +64,13 @@ class MyPlayer(xbmc.Player):
     if self.isPlayingVideo():
       self.playingvideo = True
       self.duration = self.getTotalTime()
+      logger.debuglog("Playback started")
+
+      #start capture when playback starts
+      capture_width = 32 #100
+      capture_height = int(capture_width / capture.getAspectRatio())
+      logger.debuglog("capture %s x %s" % (capture_width, capture_height))
+      capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)
       #state_changed("started", self.duration)
 
   def onPlayBackPaused(self):
@@ -76,7 +92,6 @@ class MyPlayer(xbmc.Player):
     if self.playingvideo:
       self.playingvideo = False
       #state_changed("stopped", self.duration)
-
 
 class HSVRatio:
   cyan_min = float(4.5 / 12.0)
@@ -114,9 +129,13 @@ class HSVRatio:
           if self.h < self.cyan_max:
             self.h = self.cyan_max
 
-    h = int(self.h * 65535) # on a scale from 0 <-> 65535
-    s = int(self.s * 255)
-    v = int(self.v * 255)
+    #h = int(self.h * 65535) # on a scale from 0 <-> 65535
+    #s = int(self.s * 255)
+    #v = int(self.v * 255)
+    h = self.h # on a scale from 0 <-> 65535
+    s = self.s
+    v = self.v
+
     #if v < hue.settings.ambilight_min:
     #  v = hue.settings.ambilight_min
     #if v > hue.settings.ambilight_max:
@@ -134,7 +153,8 @@ class Screenshot:
 
   def most_used_spectrum(self, spectrum, saturation, value, size, overall_value):
     # color bias/groups 6 - 36 in steps of 3
-    colorGroups = settings.color_bias
+    #colorGroups = settings.color_bias
+    colorGroups = 18
     if colorGroups == 0:
       colorGroups = 1
     colorHueRatio = 360 / colorGroups
@@ -234,7 +254,9 @@ class Screenshot:
 
 def run():
   player = None
-  last = datetime.datetime.now()
+  t = REST_Server()
+  t.daemon = True
+  t.start()
 
   while not xbmc.abortRequested:
             
@@ -248,16 +270,17 @@ def run():
         if player.playingvideo:
           screen = Screenshot(capture.getImage(), capture.getWidth(), capture.getHeight())
           hsvRatios = screen.spectrum_hsv(screen.pixels, screen.capture_width, screen.capture_height)
-          logger.debuglog("HSV ratios: %s", str(hsvRatios))
+          h,s,v = hsvRatios[0].hue(False)
+          currentColor["h"] = h
+          currentColor["s"] = s
+          currentColor["v"] = v
           
 
 
 
 if (__name__ == "__main__"):
-  settings = settings()
   logger = Logger()
-  if settings.debug == True:
-    logger.debug()
+  logger.debug()
   
   args = None
   if len(sys.argv) == 2:

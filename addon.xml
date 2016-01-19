@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.kodi.openhybrid" name="Kodi OpenHybrid" version="0.0.1" provider-name="Carsten Strunk">
+<addon id="script.kodi.openhybrid" name="Kodi OpenHybrid" version="0.0.8" provider-name="Carsten Strunk">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
-    <!--<import addon="script.module.requests"/>-->
   </requires>
   <extension point="xbmc.service" library="default.py"></extension>
   <extension point="xbmc.addon.metadata">
