@@ -26,7 +26,10 @@ class REST_Server(threading.Thread):
 
     def GET(self):
         web.header('Content-Type', 'application/json')
-        output = json.dumps(currentColor)
+        if player == None or not player.playingvideo:
+            output = json.dumps(defaultColor)
+        else:
+            output = json.dumps(currentColor)
         return output
 
 
@@ -39,8 +42,9 @@ fmt = capture.getImageFormat()
 fmtRGBA = fmt == 'RGBA'
 
 
-
 class MyMonitor(xbmc.Monitor):
+  global settings
+  global defaultColor
   def __init__(self, *args, **kwargs):
     xbmc.Monitor.__init__(self)
 
@@ -74,22 +78,26 @@ class MyPlayer(xbmc.Player):
       capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)
 
   def onPlayBackPaused(self):
+    logger.debuglog("Playback paused")
     if self.isPlayingVideo():
       self.playingvideo = False
 
   def onPlayBackResumed(self):
+    logger.debuglog("Playback resumed")
     if self.isPlayingVideo():
       self.playingvideo = True
 
   def onPlayBackStopped(self):
+    logger.debuglog("Playback stopped")
     if self.playingvideo:
       self.playingvideo = False
-      currentColor = defaultColor.copy()
 
   def onPlayBackEnded(self):
+    logger.debuglog("Playback ended")
     if self.playingvideo:
       self.playingvideo = False
-      currentColor = defaultColor.copy()
+
+player = MyPlayer()
 
 class HSVRatio:
   cyan_min = float(4.5 / 12.0)
@@ -130,7 +138,7 @@ class HSVRatio:
     #h = int(self.h * 65535) # on a scale from 0 <-> 65535
     #s = int(self.s * 255)
     #v = int(self.v * 255)
-    h = self.h # on a scale from 0 <-> 65535
+    h = self.h
     s = self.s
     v = self.v
 
@@ -144,6 +152,7 @@ class HSVRatio:
     return 'h: %s s: %s v: %s ratio: %s' % (self.h, self.s, self.v, self.ratio)
 
 class Screenshot:
+  global settings
   def __init__(self, pixels, capture_width, capture_height):
     self.pixels = pixels
     self.capture_width = capture_width
@@ -152,7 +161,7 @@ class Screenshot:
   def most_used_spectrum(self, spectrum, saturation, value, size, overall_value):
     # color bias/groups 6 - 36 in steps of 3
     #colorGroups = settings.color_bias
-    colorGroups = 18
+    colorGroups = settings.colorBias
     if colorGroups == 0:
       colorGroups = 1
     colorHueRatio = 360 / colorGroups
@@ -250,13 +259,13 @@ class Screenshot:
     return self.most_used_spectrum(spectrum, saturation, value, size, overall_value)
 
 def run():
-  player = None
+  global player
+  global settings
   t = REST_Server()
   t.daemon = True
   t.start()
 
-  while not xbmc.abortRequested:
-            
+  while not xbmc.abortRequested:    
       if player == None:
         player = MyPlayer()
       else:
@@ -267,7 +276,7 @@ def run():
         if player.playingvideo:
           screen = Screenshot(capture.getImage(), capture.getWidth(), capture.getHeight())
           hsvRatios = screen.spectrum_hsv(screen.pixels, screen.capture_width, screen.capture_height)
-          h,s,v = hsvRatios[0].hue(False)
+          h,s,v = hsvRatios[0].hue(settings.fullSpectrum)
           currentColor["h"] = h
           currentColor["s"] = s
           currentColor["v"] = v

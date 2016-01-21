@@ -4,8 +4,9 @@
     <setting type="lsep" label="101" />
     <setting id="default_hue" type="slider" default="1.0" range="0.0,0.01,1.0" option="float" label="102" />
     <setting id="default_sat" type="slider" default="1.0" range="0.0,0.01,1.0" option="float" label="103"/>
-    <setting id="default_bri" type="slider" default="1.0" range="0.0,0.01,1.0" option="float" label="103"/>
-    <setting id="color_bias"  type="slider" default="18"  range="6,3,36"       option="int"   label="104"/>
+    <setting id="default_bri" type="slider" default="1.0" range="0.0,0.01,1.0" option="float" label="104"/>
+    <setting id="color_bias"  type="slider" default="18"  range="6,3,36"       option="int"   label="105"/>
+    <setting id="full_spectrum" type="bool" default="true" label="106"/>
   </category>
   <category label="200">
     <setting id="debug" type="bool" label="201" default="true" />
