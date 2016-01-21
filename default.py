@@ -38,9 +38,7 @@ fmt = capture.getImageFormat()
 # xbmc.log("Hue Capture Image format: %s" % fmt)
 fmtRGBA = fmt == 'RGBA'
 
-currentColor = { 'h':0.0,
-                's':0.0,
-                'v':0.0}
+
 
 class MyMonitor(xbmc.Monitor):
   def __init__(self, *args, **kwargs):
@@ -48,9 +46,12 @@ class MyMonitor(xbmc.Monitor):
 
   def onSettingsChanged(self):
     logger.debuglog("Settings changed")
-    #last = datetime.datetime.now()
-    #hue.settings.readxml()
-    #hue.update_settings()
+    settings.readxml()
+    defaultColor["h"] = settings.defaultHue
+    defaultColor["s"] = settings.defaultSat
+    defaultColor["v"] = settings.defaultBri
+    logger.debuglog("Hue: %s  Sat: %s  Bri: %s" % (settings.defaultHue, settings.defaultSat, settings.defaultBri))
+
 monitor = MyMonitor()
 
 class MyPlayer(xbmc.Player):
@@ -71,27 +72,24 @@ class MyPlayer(xbmc.Player):
       capture_height = int(capture_width / capture.getAspectRatio())
       logger.debuglog("capture %s x %s" % (capture_width, capture_height))
       capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)
-      #state_changed("started", self.duration)
 
   def onPlayBackPaused(self):
     if self.isPlayingVideo():
       self.playingvideo = False
-      #state_changed("paused", self.duration)
 
   def onPlayBackResumed(self):
     if self.isPlayingVideo():
       self.playingvideo = True
-      #state_changed("resumed", self.duration)
 
   def onPlayBackStopped(self):
     if self.playingvideo:
       self.playingvideo = False
-      #state_changed("stopped", self.duration)
+      currentColor = defaultColor.copy()
 
   def onPlayBackEnded(self):
     if self.playingvideo:
       self.playingvideo = False
-      #state_changed("stopped", self.duration)
+      currentColor = defaultColor.copy()
 
 class HSVRatio:
   cyan_min = float(4.5 / 12.0)
@@ -183,7 +181,6 @@ class Screenshot:
     if colorCount > 1:
       # sort colors by popularity
       hsvRatios = sorted(hsvRatios, key=lambda hsvratio: hsvratio.ratio, reverse=True)
-      # logger.debuglog("hsvRatios %s" % hsvRatios)
       
       #return at least 3
       if colorCount == 2:
@@ -279,9 +276,17 @@ def run():
 
 
 if (__name__ == "__main__"):
+  settings = settings()
+  defaultColor = { 'h':settings.defaultHue,
+                's':settings.defaultSat,
+                'v':settings.defaultBri}
+
+  currentColor = defaultColor.copy()
   logger = Logger()
-  logger.debug()
+  if settings.debug:
+    logger.debug()
   
+  logger.debuglog("Default Color - Hue: %s  Sat: %s  Bri: %s" % (settings.defaultHue, settings.defaultSat, settings.defaultBri))
   args = None
   if len(sys.argv) == 2:
     args = sys.argv[1]

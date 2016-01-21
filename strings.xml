@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+  <string id="100">General Configuration</string>
+  <string id="101">Default Colors</string>
+  <string id="102">Hue</string>
+  <string id="103">Saturation</string>
+  <string id="103">Brightness</string>
+
+  <string id="200">Advanced configuration</string>
+  <string id="201">Enable Debug mode</string>
+</strings>
