@@ -71,6 +71,7 @@ class MyMonitor( xbmc.Monitor ):
     hue.settings.readxml()
     hue.update_settings()
 
+
 class MyPlayer(xbmc.Player):
   duration = 0
   playingvideo = False
@@ -334,6 +335,20 @@ class Hue:
       if self.settings.light > 2:
         xbmc.sleep(1)
         self.light[2].dim_light()
+
+
+  def turn_off_lights(self):
+    self.logger.debuglog("class Hue: turn off lights")
+    if self.settings.light == 0:
+      self.light.set_light2(None, None, 0, 20)
+    else:
+      self.light[0].set_light2(None, None, 0, 20)
+      if self.settings.light > 1:
+        xbmc.sleep(1)
+        self.light[1].set_light2(None, None, 0, 20)
+      if self.settings.light > 2:
+        xbmc.sleep(1)
+        self.light[2].set_light2(None, None, 0, 20)
 
 
   def brighter_lights(self):
@@ -726,6 +741,7 @@ def state_changed(state, duration):
           l.brighter_light()
     else:
       hue.brighter_lights()
+    hue.turn_off_lights()
 
 if ( __name__ == "__main__" ):
   try:
